@@ -4,7 +4,8 @@ const cors = require("cors");
 const app = express();
 const { lookup, resolve, resolve4 } = require("dns").promises;
 const { URL } = require("url");
-let urlDatabase = {};
+let urlDatabase = require("./urlDatabase.json");
+const fs = require("fs").promises;
 // Basic Configuration
 const port = process.env.PORT || 3000;
 app.use(express.json());
@@ -20,6 +21,19 @@ function getShortUrl() {
 
   return short_url;
 }
+
+async function saveDatabase() {
+  try {
+    await fs.writeFile(
+      './urlDatabase.json', 
+      JSON.stringify(urlDatabase, null, 2)
+    );
+    console.log('Database saved successfully');
+  } catch (err) {
+    console.error('Error saving database:', err);
+  }
+}
+
 app.get("/", function (req, res) {
   res.sendFile(process.cwd() + "/views/index.html");
 });
@@ -78,6 +92,7 @@ app.post("/api/shorturl", async (req, res) => {
   console.log("short_url", short_url);
   urlDatabase[short_url] = normalizedUrl;
   console.log("urlDatabase", urlDatabase);
+  await saveDatabase();
   res.json({
     original_url: normalizedUrl,
     short_url
