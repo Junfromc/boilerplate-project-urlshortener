@@ -2,10 +2,9 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const { lookup, resolve, resolve4 } = require("dns").promises;
-const { URL } = require("url");
+//const { lookup, resolve, resolve4 } = require("dns").promises;
+//const { URL } = require("url");
 let urlDatabase = require("./urlDatabase.json");
-const { url } = require("inspector");
 const fs = require("fs").promises;
 // Basic Configuration
 const port = process.env.PORT || 3000;
@@ -68,15 +67,15 @@ app.post("/api/shorturl", async (req, res) => {
     return;
   }
 
-  try {
-    const address = await resolve(urlObject.hostname);
-    console.log("address", address);
-  } catch (e) {
-    console.log("in second try/catch", e);
-    return res.json({
-      error: "invalid url",
-    });
-  }
+  // try {
+  //   const address = await lookup(urlObject.hostname);
+  //   console.log("address", address);
+  // } catch (e) {
+  //   console.log("in second try/catch", e);
+  //   return res.json({
+  //     error: "invalid url",
+  //   });
+  // }
   console.log("hostname and href:", urlObject.hostname, urlObject.href);
   const normalizedUrl = urlObject.href.replace(/\/$/, "").replace(/www\./,"").replace(/^http:\/\//, "https://");
   if (Object.values(urlDatabase).includes(normalizedUrl)) {
