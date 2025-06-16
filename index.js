@@ -34,6 +34,15 @@ async function saveDatabase() {
   }
 }
 
+function validationCheck(url) {
+  try {
+    let urlObj = new URL(url);
+    return ["http:", "https:"].includes(urlObj.protocol);
+  } catch (e) {
+    return false;
+  }
+}
+
 app.get("/", function (req, res) {
   res.sendFile(process.cwd() + "/views/index.html");
 });
@@ -45,27 +54,46 @@ app.get("/api/hello", function (req, res) {
 app.post("/api/shorturl", async (req, res) => {
   console.log("in /api/shorturl POST handler");
   const original_url = req.body.url;
-  let urlObject;
-  
+  //let urlObject;
+
   console.log("original_url", original_url);
 
-  try {
-    urlObject = new URL(original_url);
-    if (!["http:", "https:"].includes(urlObject.protocol)) {
-      throw new Error();
+  if (validationCheck(original_url)) {
+    if (!Object.values(urlDatabase).includes(original_url)) {
+      const short_url = getShortUrl();
+      console.log("short_url", short_url);
+      urlDatabase[short_url] = original_url;
+      console.log("urlDatabase", urlDatabase);
+      await saveDatabase();
+      res.json({
+        original_url: original_url,
+        short_url,
+      });
     }
-    console.log("urlObject.hostname:", urlObject.hostname);
-    let hostnameWithout3w = urlObject.hostname.replace(/^www\./, "");
-    if (!hostnameWithout3w.includes(".")) {
-      throw new Error("Hostname must contain a dot");
-    }
-  } catch (e) {
-    console.log("invalid url", e);
-    res.json({
+  } else {
+    console.log("invalid url");
+    return res.json({
       error: "invalid url",
     });
-    return;
   }
+
+  // try {
+  //   urlObject = new URL(original_url);
+  //   if (!["http:", "https:"].includes(urlObject.protocol)) {
+  //     throw new Error();
+  //   }
+  //   console.log("urlObject.hostname:", urlObject.hostname);
+  //   let hostnameWithout3w = urlObject.hostname.replace(/^www\./, "");
+  //   if (!hostnameWithout3w.includes(".")) {
+  //     throw new Error("Hostname must contain a dot");
+  //   }
+  // } catch (e) {
+  //   console.log("invalid url", e);
+  //   res.json({
+  //     error: "invalid url",
+  //   });
+  //   return;
+  // }
 
   // try {
   //   const address = await lookup(urlObject.hostname);
@@ -76,28 +104,31 @@ app.post("/api/shorturl", async (req, res) => {
   //     error: "invalid url",
   //   });
   // }
-  console.log("hostname and href:", urlObject.hostname, urlObject.href);
-  const normalizedUrl = urlObject.href.replace(/\/$/, "").replace(/www\./,"").replace(/^http:\/\//, "https://");
-  if (Object.values(urlDatabase).includes(normalizedUrl)) {
-    console.log("original_url already exists in urlDatabase");
-    const value = Object.keys(urlDatabase).find(
-      (key) => urlDatabase[key] === normalizedUrl
-    );
-    return res.json({
-      original_url: normalizedUrl,
-      short_url: Number(value),
-    });
-  }
+  // console.log("hostname and href:", urlObject.hostname, urlObject.href);
+  // const normalizedUrl = urlObject.href
+  //   .replace(/\/$/, "")
+  //   .replace(/www\./, "")
+  //   .replace(/^http:\/\//, "https://");
+  // if (Object.values(urlDatabase).includes(normalizedUrl)) {
+  //   console.log("original_url already exists in urlDatabase");
+  //   const value = Object.keys(urlDatabase).find(
+  //     (key) => urlDatabase[key] === normalizedUrl
+  //   );
+  //   return res.json({
+  //     original_url: normalizedUrl,
+  //     short_url: Number(value),
+  //   });
+  // }
 
-  const short_url = getShortUrl();
-  console.log("short_url", short_url);
-  urlDatabase[short_url] = normalizedUrl;
-  console.log("urlDatabase", urlDatabase);
-  await saveDatabase();
-  res.json({
-    original_url: normalizedUrl,
-    short_url,
-  });
+  // const short_url = getShortUrl();
+  // console.log("short_url", short_url);
+  // urlDatabase[short_url] = normalizedUrl;
+  // console.log("urlDatabase", urlDatabase);
+  // await saveDatabase();
+  // res.json({
+  //   original_url: normalizedUrl,
+  //   short_url,
+  // });
 });
 
 app.get("/api/shorturl/:short_url", (req, res) => {
@@ -106,12 +137,13 @@ app.get("/api/shorturl/:short_url", (req, res) => {
   //check if number exists in urlDatabase
   if (number in urlDatabase) {
     res.redirect(urlDatabase[number]);
-  } else {
-    console.log("short_url not found in urlDatabase");
-    res.json({
-      error: "invalid url",
-    });
   }
+  // } else {
+  //   console.log("short_url not found in urlDatabase");
+  //   res.json({
+  //     error: "invalid url",
+  //   });
+  // }
 });
 
 app.listen(port, function () {
