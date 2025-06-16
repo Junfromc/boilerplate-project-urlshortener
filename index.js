@@ -5,6 +5,7 @@ const app = express();
 const { lookup, resolve, resolve4 } = require("dns").promises;
 const { URL } = require("url");
 let urlDatabase = require("./urlDatabase.json");
+const { url } = require("inspector");
 const fs = require("fs").promises;
 // Basic Configuration
 const port = process.env.PORT || 3000;
@@ -25,12 +26,12 @@ function getShortUrl() {
 async function saveDatabase() {
   try {
     await fs.writeFile(
-      './urlDatabase.json', 
+      "./urlDatabase.json",
       JSON.stringify(urlDatabase, null, 2)
     );
-    console.log('Database saved successfully');
+    console.log("Database saved successfully");
   } catch (err) {
-    console.error('Error saving database:', err);
+    console.error("Error saving database:", err);
   }
 }
 
@@ -46,6 +47,7 @@ app.post("/api/shorturl", async (req, res) => {
   console.log("in /api/shorturl POST handler");
   const original_url = req.body.url;
   let urlObject;
+  
   console.log("original_url", original_url);
 
   try {
@@ -53,10 +55,11 @@ app.post("/api/shorturl", async (req, res) => {
     if (!["http:", "https:"].includes(urlObject.protocol)) {
       throw new Error();
     }
-    console.log("urlObject.hostname", urlObject.hostname);
-    if (!urlObject.hostname.includes(".")) {
-    throw new Error("Hostname must contain a dot");
-  }
+    console.log("urlObject.hostname:", urlObject.hostname);
+    let hostnameWithout3w = urlObject.hostname.replace(/^www\./, "");
+    if (!hostnameWithout3w.includes(".")) {
+      throw new Error("Hostname must contain a dot");
+    }
   } catch (e) {
     console.log("invalid url", e);
     res.json({
@@ -73,10 +76,9 @@ app.post("/api/shorturl", async (req, res) => {
     return res.json({
       error: "invalid url",
     });
-    
   }
-
-   const normalizedUrl = urlObject.href.replace(/\/$/, "");
+  console.log("hostname and href:", urlObject.hostname, urlObject.href);
+  const normalizedUrl = urlObject.href.replace(/\/$/, "").replace(/www\./,"");
   if (Object.values(urlDatabase).includes(normalizedUrl)) {
     console.log("original_url already exists in urlDatabase");
     const value = Object.keys(urlDatabase).find(
@@ -95,7 +97,7 @@ app.post("/api/shorturl", async (req, res) => {
   await saveDatabase();
   res.json({
     original_url: normalizedUrl,
-    short_url
+    short_url,
   });
 });
 
@@ -103,15 +105,14 @@ app.get("/api/shorturl/:short_url", (req, res) => {
   let number = Number(req.params.short_url);
   console.log("in /api/shorturl/:short_url handler", number);
   //check if number exists in urlDatabase
-  if(number in urlDatabase){
+  if (number in urlDatabase) {
     res.redirect(urlDatabase[number]);
-  }else{
+  } else {
     console.log("short_url not found in urlDatabase");
     res.json({
       error: "invalid url",
     });
   }
-
 });
 
 app.listen(port, function () {
