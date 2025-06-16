@@ -78,7 +78,7 @@ app.post("/api/shorturl", async (req, res) => {
     });
   }
   console.log("hostname and href:", urlObject.hostname, urlObject.href);
-  const normalizedUrl = urlObject.href.replace(/\/$/, "").replace(/www\./,"");
+  const normalizedUrl = urlObject.href.replace(/\/$/, "").replace(/www\./,"").replace(/^http:\/\//, "https://");
   if (Object.values(urlDatabase).includes(normalizedUrl)) {
     console.log("original_url already exists in urlDatabase");
     const value = Object.keys(urlDatabase).find(
